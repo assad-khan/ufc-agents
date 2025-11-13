@@ -1,0 +1,11 @@
+fastapi
+uvicorn[standard]
+langchain
+langchain-openai
+langchain-anthropic
+langchain-google-genai
+langchain-google-vertexai
+pydantic
+python-dotenv
+httpx
+loguru
