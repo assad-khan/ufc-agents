@@ -2,6 +2,7 @@ from langchain_openai import ChatOpenAI
 from langchain_anthropic import ChatAnthropic
 from langchain_google_genai import ChatGoogleGenerativeAI
 from app.config import get_api_key
+from typing import Dict
 
 def get_llm(model_name: str, temperature: float = 0.1, runtime_keys: Dict[str, str] = None):
     if model_name.startswith("gpt"):
