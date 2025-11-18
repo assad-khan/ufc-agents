@@ -410,9 +410,7 @@ def display_analysis_results(results: Dict[str, Any]):
         col1, col2 = st.columns([2, 1])
 
         with col1:
-            fighter1_name = analysis.get('fighter1', 'Unknown Fighter')
-            fighter2_name = analysis.get('fighter2', 'Unknown Fighter')
-            st.markdown(f"## 🥊 {fighter1_name} vs. {fighter2_name} Prediction")
+            st.markdown(f"## 🥊 {fight_id} Prediction")
             st.markdown(f"**Pick: {pick}**")
             st.markdown(f"**Victory Path:** {path_to_victory}")
 
