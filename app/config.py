@@ -45,5 +45,24 @@ def get_model_for_agent(agent_type: str) -> str:
 def get_temperature_for_agent(agent_type: str) -> float:
     return AGENT_TEMPERATURES.get(agent_type, 0.1)  # default temperature
 
-def get_api_key(provider: str) -> str:
+def get_api_key(provider: str, runtime_keys: Dict[str, str] = None) -> str:
+    """Get API key either from runtime keys or environment variables"""
+    if runtime_keys and provider in runtime_keys:
+        return runtime_keys[provider]
     return API_KEYS.get(provider)
+
+
+def set_runtime_api_keys(runtime_keys: Dict[str, str] = None):
+    """Temporarily set environment variables for runtime API keys"""
+    if runtime_keys:
+        env_mapping = {
+            "openai": "OPENAI_API_KEY",
+            "anthropic": "ANTHROPIC_API_KEY",
+            "google": "GOOGLE_API_KEY",
+            "serper": "SERPER_API_KEY"
+        }
+        for provider, key in runtime_keys.items():
+            env_var = env_mapping.get(provider)
+            if env_var and key:
+                os.environ[env_var] = key
+                logger.info(f"Set runtime API key for {provider}")

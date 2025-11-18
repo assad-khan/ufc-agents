@@ -35,6 +35,10 @@ class Card(BaseModel):
         default=None,
         description="Optional model overrides for specific agents. If not provided, defaults are used."
     )
+    api_keys: Optional[Dict[str, str]] = Field(
+        default=None,
+        description="Optional API keys for LLM providers. If not provided, uses environment variables. Keys: 'openai', 'anthropic', 'serper'"
+    )
 
     class Config:
         schema_extra = {

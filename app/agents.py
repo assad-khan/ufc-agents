@@ -82,7 +82,7 @@ async def run_agent(agent_type: str, system_prompt: str, card: Card, model_overr
         logger.error(f"Error in {agent_type} agent: {str(e)}")
         return f"Analysis failed for {agent_type}: {str(e)}"
 
-async def tape_study_agent(card: Card, model_override: Optional[str] = None, use_serper: bool = False) -> str:
+async def tape_study_agent(card: Card, model_override: Optional[str] = None, use_serper: bool = False, api_keys: Optional[Dict[str, str]] = None) -> str:
     logger.info(f"Starting tape_study agent (serper: {use_serper})")
     try:
         model_name = model_override if model_override else get_model_for_agent("tape_study")
@@ -113,7 +113,7 @@ async def tape_study_agent(card: Card, model_override: Optional[str] = None, use
         logger.error(f"Error in tape_study agent: {str(e)}")
         return f"Analysis failed for tape_study: {str(e)}"
 
-async def stats_trends_agent(card: Card, model_override: Optional[str] = None, use_serper: bool = False) -> str:
+async def stats_trends_agent(card: Card, model_override: Optional[str] = None, use_serper: bool = False, api_keys: Optional[Dict[str, str]] = None) -> str:
     logger.info(f"Starting stats_trends agent (serper: {use_serper})")
     try:
         model_name = model_override if model_override else get_model_for_agent("stats_trends")
@@ -144,7 +144,7 @@ async def stats_trends_agent(card: Card, model_override: Optional[str] = None, u
         logger.error(f"Error in stats_trends agent: {str(e)}")
         return f"Analysis failed for stats_trends: {str(e)}"
 
-async def news_weighins_agent(card: Card, model_override: Optional[str] = None, use_serper: bool = False) -> str:
+async def news_weighins_agent(card: Card, model_override: Optional[str] = None, use_serper: bool = False, api_keys: Optional[Dict[str, str]] = None) -> str:
     logger.info(f"Starting news_weighins agent (serper: {use_serper})")
     try:
         model_name = model_override if model_override else get_model_for_agent("news_weighins")
@@ -175,7 +175,7 @@ async def news_weighins_agent(card: Card, model_override: Optional[str] = None, 
         logger.error(f"Error in news_weighins agent: {str(e)}")
         return f"Analysis failed for news_weighins: {str(e)}"
 
-async def style_matchup_agent(card: Card, model_override: Optional[str] = None, use_serper: bool = False) -> str:
+async def style_matchup_agent(card: Card, model_override: Optional[str] = None, use_serper: bool = False, api_keys: Optional[Dict[str, str]] = None) -> str:
     logger.info(f"Starting style_matchup agent (serper: {use_serper})")
     try:
         model_name = model_override if model_override else get_model_for_agent("style_matchup")
@@ -206,7 +206,7 @@ async def style_matchup_agent(card: Card, model_override: Optional[str] = None, 
         logger.error(f"Error in style_matchup agent: {str(e)}")
         return f"Analysis failed for style_matchup: {str(e)}"
 
-async def market_odds_agent(card: Card, model_override: Optional[str] = None, use_serper: bool = False) -> str:
+async def market_odds_agent(card: Card, model_override: Optional[str] = None, use_serper: bool = False, api_keys: Optional[Dict[str, str]] = None) -> str:
     logger.info(f"Starting market_odds agent (serper: {use_serper})")
     try:
         model_name = model_override if model_override else get_model_for_agent("market_odds")
@@ -237,7 +237,7 @@ async def market_odds_agent(card: Card, model_override: Optional[str] = None, us
         logger.error(f"Error in market_odds agent: {str(e)}")
         return f"Analysis failed for market_odds: {str(e)}"
 
-async def judge_agent(card: Card, tape: str, stats: str, news: str, style: str, market: str, model_override: Optional[str] = None) -> List[FightAnalysis]:
+async def judge_agent(card: Card, tape: str, stats: str, news: str, style: str, market: str, model_override: Optional[str] = None, api_keys: Optional[Dict[str, str]] = None) -> List[FightAnalysis]:
     logger.info("Starting judge agent")
     try:
         model_name = model_override if model_override else get_model_for_agent("judge")
@@ -285,7 +285,7 @@ Provide final analysis for all fights with picks, confidence, path to victory, r
 
 # Post agents - now using LangChain agents
 
-async def risk_scorer_agent(analyses: List[FightAnalysis], model_override: Optional[str] = None) -> List[FightAnalysis]:
+async def risk_scorer_agent(analyses: List[FightAnalysis], model_override: Optional[str] = None, api_keys: Optional[Dict[str, str]] = None) -> List[FightAnalysis]:
     """Risk Scorer Agent - enhances risk flags using LLM analysis"""
     logger.info(f"Starting risk scorer agent for {len(analyses)} analyses")
     try:
@@ -343,7 +343,7 @@ Return the complete updated analysis with enhanced risk assessment.
                 analysis.risk_flags.append("no major risks identified")
         return analyses
 
-async def consistency_checker_agent(analyses: List[FightAnalysis], model_override: Optional[str] = None) -> List[FightAnalysis]:
+async def consistency_checker_agent(analyses: List[FightAnalysis], model_override: Optional[str] = None, api_keys: Optional[Dict[str, str]] = None) -> List[FightAnalysis]:
     """Consistency Checker Agent - validates and adjusts confidence scores"""
     logger.info(f"Starting consistency checker agent for {len(analyses)} analyses")
     try:
