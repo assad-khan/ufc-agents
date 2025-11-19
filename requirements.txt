@@ -9,4 +9,5 @@ python-dotenv
 httpx
 loguru
 requests
+google-generativeai>=0.8.0
 streamlit==1.41.0

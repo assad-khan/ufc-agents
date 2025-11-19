@@ -9,6 +9,9 @@ import requests
 from loguru import logger
 from app.prompts import *
 
+# Gemini imports for direct API usage
+from google import genai
+
 
 
 # Serper Web Search Tool
@@ -149,28 +152,50 @@ async def news_weighins_agent(card: Card, model_override: Optional[str] = None, 
     try:
         model_name = model_override if model_override else get_model_for_agent("news_weighins")
 
-        # Determine tools based on use_serper flag
-        tools = [serper_search] if use_serper else []
+        if model_name.startswith("gemini"):
+            # Use direct Gemini API with GoogleSearch
+            api_key = get_api_key("google", api_keys)
+            client = genai.Client(api_key=api_key)
+            prompt = f"""{NEWS_WEIGHINS_PROMPT}
 
-        # Create agent with conditional tools
-        agent = create_agent(
-            model=model_name,
-            tools=tools,
-            response_format=None,  # Text response
-            system_prompt=NEWS_WEIGHINS_PROMPT
-        )
+Analyze this UFC card for news and external factors:
+{card}
 
-        if use_serper:
-            user_content = f"Analyze this UFC card for news and external factors:\n{card}\n\nYou can use the serper_search tool to find recent news about fighters, injuries, weigh-in reports, and training camp updates."
+Use the Google Search tool to find recent news about fighters, injuries, weigh-in reports, and training camp updates."""
+
+            response = client.models.generate_content(
+                model=model_name,
+                contents=prompt,
+                config=genai.GenerateContentConfig(
+                    tools=[genai.Tool(google_search=genai.GoogleSearch())]
+                )
+            )
+            logger.info(f"Completed news_weighins agent with Gemini")
+            return response.text
         else:
-            user_content = f"Analyze this UFC card for news and external factors:\n{card}"
+            # Use LangChain approach with optional Serper
+            # Determine tools based on use_serper flag
+            tools = [serper_search] if use_serper else []
 
-        result = agent.invoke({
-            "messages": [{"role": "user", "content": user_content}]
-        })
+            # Create agent with conditional tools
+            agent = create_agent(
+                model=model_name,
+                tools=tools,
+                response_format=None,  # Text response
+                system_prompt=NEWS_WEIGHINS_PROMPT
+            )
 
-        logger.info(f"Completed news_weighins agent (serper: {use_serper})")
-        return result["messages"][-1].content
+            if use_serper:
+                user_content = f"Analyze this UFC card for news and external factors:\n{card}\n\nYou can use the serper_search tool to find recent news about fighters, injuries, weigh-in reports, and training camp updates."
+            else:
+                user_content = f"Analyze this UFC card for news and external factors:\n{card}"
+
+            result = agent.invoke({
+                "messages": [{"role": "user", "content": user_content}]
+            })
+
+            logger.info(f"Completed news_weighins agent (serper: {use_serper})")
+            return result["messages"][-1].content
     except Exception as e:
         logger.error(f"Error in news_weighins agent: {str(e)}")
         return f"Analysis failed for news_weighins: {str(e)}"

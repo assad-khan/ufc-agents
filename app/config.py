@@ -7,21 +7,21 @@ load_dotenv()
 
 # Agent to model mapping - optimized models per user requirements
 AGENT_MODELS = {
-    "tape_study": "claude-3-7-sonnet-20250219",   
-    "stats_trends": "gpt-5",              
-    "news_weighins": "gpt-5",             
-    "style_matchup": "claude-3-7-sonnet-20250219",  
-    "market_odds": "gpt-5-mini",               
-    "judge": "gpt-5",                       
-    "risk_scorer": "gpt-5-mini",               
-    "consistency_checker": "claude-3-5-haiku-20241022"   
+    "tape_study": "claude-3-7-sonnet-20250219",
+    "stats_trends": "gpt-5",
+    "news_weighins": "gemini-2.5-flash",
+    "style_matchup": "claude-3-7-sonnet-20250219",
+    "market_odds": "gpt-5-mini",
+    "judge": "gpt-5",
+    "risk_scorer": "gpt-5-mini",
+    "consistency_checker": "claude-3-5-haiku-20241022"
 }
 
 # Agent temperature settings for custom control
 AGENT_TEMPERATURES = {
     "tape_study": 0.2,        # Claude 3.7 Sonnet temperature
     "stats_trends": 0.1,      # GPT-5 Thinking temperature
-    "news_weighins": 0.1,     # GPT-5 Thinking temperature
+    "news_weighins": 0.1,     # Gemini-2.5-flash temperature
     "style_matchup": 0.2,     # Claude 3.7 Sonnet temperature
     "market_odds": 0.0,       # GPT-5 mini temperature
     "judge": 0.0,             # GPT-5 Thinking (JSON mode) temperature
