@@ -11,6 +11,7 @@ from app.prompts import *
 
 # Gemini imports for direct API usage
 from google import genai
+from google.genai.types import GenerateContentConfig, GoogleSearch, Tool
 
 
 
@@ -153,6 +154,7 @@ async def news_weighins_agent(card: Card, model_override: Optional[str] = None, 
         model_name = model_override if model_override else get_model_for_agent("news_weighins")
 
         if model_name.startswith("gemini"):
+            logger.info(f"Starting news_weighins agent with Gemini: {model_name}")
             # Use direct Gemini API with GoogleSearch
             api_key = get_api_key("google", api_keys)
             client = genai.Client(api_key=api_key)
@@ -166,8 +168,8 @@ Use the Google Search tool to find recent news about fighters, injuries, weigh-i
             response = client.models.generate_content(
                 model=model_name,
                 contents=prompt,
-                config=genai.GenerateContentConfig(
-                    tools=[genai.Tool(google_search=genai.GoogleSearch())]
+                config=GenerateContentConfig(
+                    tools=[Tool(google_search=GoogleSearch())]
                 )
             )
             logger.info(f"Completed news_weighins agent with Gemini")

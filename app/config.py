@@ -9,7 +9,7 @@ load_dotenv()
 AGENT_MODELS = {
     "tape_study": "claude-3-7-sonnet-20250219",
     "stats_trends": "gpt-5",
-    "news_weighins": "gemini-2.5-flash",
+    "news_weighins": "gemini-2.5-pro",
     "style_matchup": "claude-3-7-sonnet-20250219",
     "market_odds": "gpt-5-mini",
     "judge": "gpt-5",
@@ -21,7 +21,7 @@ AGENT_MODELS = {
 AGENT_TEMPERATURES = {
     "tape_study": 0.2,        # Claude 3.7 Sonnet temperature
     "stats_trends": 0.1,      # GPT-5 Thinking temperature
-    "news_weighins": 0.1,     # Gemini-2.5-flash temperature
+    "news_weighins": 0.1,     # Gemini-2.5-pro temperature
     "style_matchup": 0.2,     # Claude 3.7 Sonnet temperature
     "market_odds": 0.0,       # GPT-5 mini temperature
     "judge": 0.0,             # GPT-5 Thinking (JSON mode) temperature

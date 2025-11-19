@@ -145,6 +145,12 @@ with st.sidebar:
             key="anthropic_key_input",
             help="Your Claude/Anthropic API key (e.g., sk-ant-api03-...)"
         )
+        google_key = st.text_input(
+            "Google AI API Key",
+            type="password",
+            key="google_key_input",
+            help="Your Gemini/Google AI API key (optional, for Gemini models)"
+        )
         serper_key = st.text_input(
             "Serper API Key",
             type="password",
@@ -165,67 +171,77 @@ with st.sidebar:
             for error in api_key_validation_errors:
                 st.error(error)
             api_keys = None
+            agent_models = {}  # Initialize empty dict for validation
         else:
-            # Only include Serper key if web search is enabled
+            # Only include Serper key if web search is enabled, Google key if provided
             api_keys = {
                 "openai": openai_key.strip(),
                 "anthropic": anthropic_key.strip()
             }
+            if google_key.strip():
+                api_keys["google"] = google_key.strip()
             if use_serper:
                 api_keys["serper"] = serper_key.strip()
-            st.success(f"✅ All API keys configured ({len(api_keys)} keys)")
+            st.success(f"✅ API keys configured ({len(api_keys)} keys)")
+            agent_models = {}  # Will be populated below
 
     # Advanced settings
     with st.expander("🔧 Advanced Settings"):
         st.markdown("**Agent Model Overrides** (Optional)")
-
-        agent_models = {}
 
         col1, col2 = st.columns(2)
 
         with col1:
             agent_models['tape_study'] = st.selectbox(
                 "Tape Study Agent",
-                ["claude-3-7-sonnet-20250219", "claude-3-5-sonnet", "gpt-5", "gpt-4"],
+                ["claude-3-7-sonnet-20250219", "claude-3-5-sonnet", "gemini-2.5-pro", "gemini-2.5-pro", "gpt-5", "gpt-4"],
                 help="Technical combat analysis expert"
             )
             agent_models['stats_trends'] = st.selectbox(
                 "Stats & Trends Agent",
-                ["gpt-5", "gpt-4", "claude-3-7-sonnet-20250219"],
+                ["gpt-5", "gpt-4", "gemini-2.5-pro", "claude-3-7-sonnet-20250219"],
                 help="Quantitative performance analyst"
             )
             agent_models['news_weighins'] = st.selectbox(
                 "News & Intelligence Agent",
-                ["gpt-5", "gpt-4", "claude-3-7-sonnet-20250219"],
+                ["gemini-2.5-pro", "gpt-5", "gpt-4", "claude-3-7-sonnet-20250219"],
                 help="External factors specialist"
             )
             agent_models['style_matchup'] = st.selectbox(
                 "Style Matchup Agent",
-                ["claude-3-7-sonnet-20250219", "claude-3-5-sonnet", "gpt-5"],
+                ["claude-3-7-sonnet-20250219", "claude-3-5-sonnet", "gemini-2.5-pro", "gpt-5"],
                 help="Fighting style compatibility expert"
             )
 
         with col2:
             agent_models['market_odds'] = st.selectbox(
                 "Market & Odds Agent",
-                ["gpt-5-mini", "gpt-4", "gpt-3.5"],
+                ["gpt-5-mini", "gpt-4", "gpt-3.5", "gemini-2.5-pro"],
                 help="Betting market analyst"
             )
             agent_models['judge'] = st.selectbox(
                 "Judge Agent",
-                ["gpt-5", "gpt-4", "claude-3-7-sonnet-20250219"],
+                ["gpt-5", "gpt-4", "gemini-2.5-pro", "claude-3-7-sonnet-20250219"],
                 help="Multi-disciplinary synthesis"
             )
             agent_models['risk_scorer'] = st.selectbox(
                 "Risk Scorer",
-                ["gpt-5-mini", "gpt-4", "claude-3-5-haiku"],
+                ["gpt-5-mini", "gpt-4", "gemini-2.5-pro", "claude-3-5-haiku"],
                 help="Uncertainty assessment"
             )
             agent_models['consistency_checker'] = st.selectbox(
                 "Consistency Checker",
-                ["claude-3-5-haiku-20241022", "gpt-4", "claude-3-5-sonnet"],
+                ["claude-3-5-haiku-20241022", "gemini-2.5-pro", "gpt-4", "claude-3-5-sonnet"],
                 help="Quality assurance"
             )
+
+        # Check if any Gemini models are selected and warn if no Google key
+        gemini_models_selected = any(
+            model.startswith("gemini") for model in agent_models.values()
+        )
+
+        if gemini_models_selected and not google_key.strip():
+            st.error("⚠️ **Google AI API Key Required:** You selected Gemini models but didn't provide a Google API key. Please add your Google AI API key above.")
 
 
 def create_fight_form(fight_num: int) -> Dict[str, Any]:

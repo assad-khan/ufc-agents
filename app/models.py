@@ -5,7 +5,7 @@ class AgentModels(BaseModel):
     """Model overrides for specific agents"""
     tape_study: Optional[str] = Field(default=None, example="claude-3-7-sonnet-20250219")
     stats_trends: Optional[str] = Field(default=None, example="gpt-5")
-    news_weighins: Optional[str] = Field(default=None, example="gpt-5")
+    news_weighins: Optional[str] = Field(default=None, example="gemini-2.5-pro")
     style_matchup: Optional[str] = Field(default=None, example="claude-3-7-sonnet-20250219")
     market_odds: Optional[str] = Field(default=None, example="gpt-5-mini")
     judge: Optional[str] = Field(default=None, example="gpt-5")
