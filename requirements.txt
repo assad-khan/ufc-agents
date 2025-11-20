@@ -1,14 +1,13 @@
-fastapi
-uvicorn[standard]
-langchain
-langchain-openai
-langchain-anthropic
-langchain-google-genai
-pydantic
-python-dotenv
-httpx
-loguru
-requests
-google-generativeai>=0.8.0
+# fastapi
+# uvicorn[standard]
+langchain==1.0.7
+langchain-openai==1.0.3
+langchain-anthropic==1.1.0
+langchain-google-genai==3.1.0
+pydantic==2.12.4
+python-dotenv==1.2.1
+httpx==0.28.1
+loguru==0.7.3
+requests==2.32.5
 streamlit==1.41.0
-google-genai
+google-genai==1.51.0
