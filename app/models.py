@@ -1,6 +1,17 @@
 from pydantic import BaseModel, Field
 from typing import List, Optional, Dict
 
+class AgentPrompts(BaseModel):
+    """Custom prompts for specific agents"""
+    tape_study: Optional[str] = Field(default=None, example="Custom tape study prompt...")
+    stats_trends: Optional[str] = Field(default=None, example="Custom stats prompt...")
+    news_weighins: Optional[str] = Field(default=None, example="Custom news prompt...")
+    style_matchup: Optional[str] = Field(default=None, example="Custom style matchup prompt...")
+    market_odds: Optional[str] = Field(default=None, example="Custom market odds prompt...")
+    judge: Optional[str] = Field(default=None, example="Custom judge prompt...")
+    risk_scorer: Optional[str] = Field(default=None, example="Custom risk scorer prompt...")
+    consistency_checker: Optional[str] = Field(default=None, example="Custom consistency checker prompt...")
+
 class AgentModels(BaseModel):
     """Model overrides for specific agents"""
     tape_study: Optional[str] = Field(default=None, example="claude-3-7-sonnet-20250219")
@@ -34,6 +45,10 @@ class Card(BaseModel):
     agent_models: Optional[AgentModels] = Field(
         default=None,
         description="Optional model overrides for specific agents. If not provided, defaults are used."
+    )
+    custom_prompts: Optional[AgentPrompts] = Field(
+        default=None,
+        description="Optional custom prompts for specific agents. If not provided, default prompts are used."
     )
     api_keys: Optional[Dict[str, str]] = Field(
         default=None,

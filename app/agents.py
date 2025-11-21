@@ -86,10 +86,12 @@ async def run_agent(agent_type: str, system_prompt: str, card: Card, model_overr
         logger.error(f"Error in {agent_type} agent: {str(e)}")
         return f"Analysis failed for {agent_type}: {str(e)}"
 
-async def tape_study_agent(card: Card, model_override: Optional[str] = None, use_serper: bool = False, api_keys: Optional[Dict[str, str]] = None) -> str:
+async def tape_study_agent(card: Card, model_override: Optional[str] = None, use_serper: bool = False, api_keys: Optional[Dict[str, str]] = None, custom_prompt: Optional[str] = None) -> str:
     logger.info(f"Starting tape_study agent (serper: {use_serper})")
     try:
         model_name = model_override if model_override else get_model_for_agent("tape_study")
+        system_prompt = custom_prompt if custom_prompt else TAPE_STUDY_PROMPT
+   
 
         # Determine tools based on use_serper flag
         tools = [serper_search] if use_serper else []
@@ -99,7 +101,7 @@ async def tape_study_agent(card: Card, model_override: Optional[str] = None, use
             model=model_name,
             tools=tools,
             response_format=None,  # Text response
-            system_prompt=TAPE_STUDY_PROMPT
+            system_prompt=system_prompt
         )
 
         if use_serper:
@@ -117,10 +119,12 @@ async def tape_study_agent(card: Card, model_override: Optional[str] = None, use
         logger.error(f"Error in tape_study agent: {str(e)}")
         return f"Analysis failed for tape_study: {str(e)}"
 
-async def stats_trends_agent(card: Card, model_override: Optional[str] = None, use_serper: bool = False, api_keys: Optional[Dict[str, str]] = None) -> str:
+async def stats_trends_agent(card: Card, model_override: Optional[str] = None, use_serper: bool = False, api_keys: Optional[Dict[str, str]] = None, custom_prompt: Optional[str] = None) -> str:
     logger.info(f"Starting stats_trends agent (serper: {use_serper})")
     try:
         model_name = model_override if model_override else get_model_for_agent("stats_trends")
+        system_prompt = custom_prompt if custom_prompt else STATS_TRENDS_PROMPT
+
 
         # Determine tools based on use_serper flag
         tools = [serper_search] if use_serper else []
@@ -130,7 +134,7 @@ async def stats_trends_agent(card: Card, model_override: Optional[str] = None, u
             model=model_name,
             tools=tools,
             response_format=None,  # Text response
-            system_prompt=STATS_TRENDS_PROMPT
+            system_prompt=system_prompt
         )
 
         if use_serper:
@@ -148,17 +152,19 @@ async def stats_trends_agent(card: Card, model_override: Optional[str] = None, u
         logger.error(f"Error in stats_trends agent: {str(e)}")
         return f"Analysis failed for stats_trends: {str(e)}"
 
-async def news_weighins_agent(card: Card, model_override: Optional[str] = None, use_serper: bool = False, api_keys: Optional[Dict[str, str]] = None) -> str:
+async def news_weighins_agent(card: Card, model_override: Optional[str] = None, use_serper: bool = False, api_keys: Optional[Dict[str, str]] = None, custom_prompt: Optional[str] = None) -> str:
     logger.info(f"Starting news_weighins agent (serper: {use_serper})")
     try:
         model_name = model_override if model_override else get_model_for_agent("news_weighins")
+        system_prompt = custom_prompt if custom_prompt else NEWS_WEIGHINS_PROMPT
+   
 
         if model_name.startswith("gemini"):
             logger.info(f"Starting news_weighins agent with Gemini: {model_name}")
             # Use direct Gemini API with GoogleSearch
             api_key = get_api_key("google", api_keys)
             client = genai.Client(api_key=api_key)
-            prompt = f"""{NEWS_WEIGHINS_PROMPT}
+            prompt = f"""{system_prompt}
 
 Analyze this UFC card for news and external factors:
 {card}
@@ -184,7 +190,7 @@ Use the Google Search tool to find recent news about fighters, injuries, weigh-i
                 model=model_name,
                 tools=tools,
                 response_format=None,  # Text response
-                system_prompt=NEWS_WEIGHINS_PROMPT
+                system_prompt=system_prompt
             )
 
             if use_serper:
@@ -202,10 +208,12 @@ Use the Google Search tool to find recent news about fighters, injuries, weigh-i
         logger.error(f"Error in news_weighins agent: {str(e)}")
         return f"Analysis failed for news_weighins: {str(e)}"
 
-async def style_matchup_agent(card: Card, model_override: Optional[str] = None, use_serper: bool = False, api_keys: Optional[Dict[str, str]] = None) -> str:
+async def style_matchup_agent(card: Card, model_override: Optional[str] = None, use_serper: bool = False, api_keys: Optional[Dict[str, str]] = None, custom_prompt: Optional[str] = None) -> str:
     logger.info(f"Starting style_matchup agent (serper: {use_serper})")
     try:
         model_name = model_override if model_override else get_model_for_agent("style_matchup")
+        system_prompt = custom_prompt if custom_prompt else STYLE_MATCHUP_PROMPT
+      
 
         # Determine tools based on use_serper flag
         tools = [serper_search] if use_serper else []
@@ -215,7 +223,7 @@ async def style_matchup_agent(card: Card, model_override: Optional[str] = None, 
             model=model_name,
             tools=tools,
             response_format=None,  # Text response
-            system_prompt=STYLE_MATCHUP_PROMPT
+            system_prompt=system_prompt
         )
 
         if use_serper:
@@ -233,10 +241,11 @@ async def style_matchup_agent(card: Card, model_override: Optional[str] = None, 
         logger.error(f"Error in style_matchup agent: {str(e)}")
         return f"Analysis failed for style_matchup: {str(e)}"
 
-async def market_odds_agent(card: Card, model_override: Optional[str] = None, use_serper: bool = False, api_keys: Optional[Dict[str, str]] = None) -> str:
+async def market_odds_agent(card: Card, model_override: Optional[str] = None, use_serper: bool = False, api_keys: Optional[Dict[str, str]] = None, custom_prompt: Optional[str] = None) -> str:
     logger.info(f"Starting market_odds agent (serper: {use_serper})")
     try:
         model_name = model_override if model_override else get_model_for_agent("market_odds")
+        system_prompt = custom_prompt if custom_prompt else MARKET_ODDS_PROMPT
 
         # Determine tools based on use_serper flag
         tools = [serper_search] if use_serper else []
@@ -246,7 +255,7 @@ async def market_odds_agent(card: Card, model_override: Optional[str] = None, us
             model=model_name,
             tools=tools,
             response_format=None,  # Text response
-            system_prompt=MARKET_ODDS_PROMPT
+            system_prompt=system_prompt
         )
 
         if use_serper:
@@ -264,17 +273,17 @@ async def market_odds_agent(card: Card, model_override: Optional[str] = None, us
         logger.error(f"Error in market_odds agent: {str(e)}")
         return f"Analysis failed for market_odds: {str(e)}"
 
-async def judge_agent(card: Card, tape: str, stats: str, news: str, style: str, market: str, model_override: Optional[str] = None, api_keys: Optional[Dict[str, str]] = None) -> List[FightAnalysis]:
+async def judge_agent(card: Card, tape: str, stats: str, news: str, style: str, market: str, model_override: Optional[str] = None, api_keys: Optional[Dict[str, str]] = None, custom_prompt: Optional[str] = None) -> List[FightAnalysis]:
     logger.info("Starting judge agent")
     try:
         model_name = model_override if model_override else get_model_for_agent("judge")
 
-        system_prompt = """
+        system_prompt = custom_prompt if custom_prompt else """
 You are the final judge synthesizing all analyses into a definitive prediction.
 
 Synthesize the following analyses from different experts for each fight on the UFC card.
 """
-
+       
         # Create agent with structured output
         agent = create_agent(
             model=model_name,
@@ -312,13 +321,13 @@ Provide final analysis for all fights with picks, confidence, path to victory, r
 
 # Post agents - now using LangChain agents
 
-async def risk_scorer_agent(analyses: List[FightAnalysis], model_override: Optional[str] = None, api_keys: Optional[Dict[str, str]] = None) -> List[FightAnalysis]:
+async def risk_scorer_agent(analyses: List[FightAnalysis], model_override: Optional[str] = None, api_keys: Optional[Dict[str, str]] = None, custom_prompt: Optional[str] = None) -> List[FightAnalysis]:
     """Risk Scorer Agent - enhances risk flags using LLM analysis"""
     logger.info(f"Starting risk scorer agent for {len(analyses)} analyses")
     try:
         model_name = model_override if model_override else get_model_for_agent("risk_scorer")
 
-        system_prompt = """
+        system_prompt = custom_prompt if custom_prompt else """
 You are an expert risk assessor for UFC fights. Review the current fight analyses and identify additional risk factors that could affect outcomes.
 
 Consider factors like:
@@ -332,7 +341,7 @@ Consider factors like:
 
 Add relevant risk flags to each analysis while preserving existing ones.
 """
-
+        
         agent = create_agent(
             model=model_name,
             tools=[],  # No tools needed
@@ -370,13 +379,13 @@ Return the complete updated analysis with enhanced risk assessment.
                 analysis.risk_flags.append("no major risks identified")
         return analyses
 
-async def consistency_checker_agent(analyses: List[FightAnalysis], model_override: Optional[str] = None, api_keys: Optional[Dict[str, str]] = None) -> List[FightAnalysis]:
+async def consistency_checker_agent(analyses: List[FightAnalysis], model_override: Optional[str] = None, api_keys: Optional[Dict[str, str]] = None, custom_prompt: Optional[str] = None) -> List[FightAnalysis]:
     """Consistency Checker Agent - validates and adjusts confidence scores"""
     logger.info(f"Starting consistency checker agent for {len(analyses)} analyses")
     try:
         model_name = model_override if model_override else get_model_for_agent("consistency_checker")
 
-        system_prompt = """
+        system_prompt = custom_prompt if custom_prompt else """
 You are a consistency checker for UFC fight predictions. Review the analyses for logical consistency and adjust confidence scores as needed.
 
 Consider:

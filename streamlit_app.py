@@ -9,13 +9,18 @@ import asyncio
 from datetime import datetime
 
 # Direct UFC analysis imports
-from app.models import Card, CardAnalysis
+from app.models import Card, CardAnalysis, AgentPrompts
 from app.agents import (
     tape_study_agent, stats_trends_agent, news_weighins_agent,
     style_matchup_agent, market_odds_agent, judge_agent,
     risk_scorer_agent, consistency_checker_agent
 )
 from app.config import set_runtime_api_keys
+from app.prompts import (
+    TAPE_STUDY_PROMPT, STATS_TRENDS_PROMPT, NEWS_WEIGHINS_PROMPT,
+    STYLE_MATCHUP_PROMPT, MARKET_ODDS_PROMPT, JUDGE_PROMPT,
+    RISK_SCORER_PROMPT, CONSISTENCY_CHECKER_PROMPT
+)
 
 # Page configuration
 st.set_page_config(
@@ -194,7 +199,7 @@ with st.sidebar:
         with col1:
             agent_models['tape_study'] = st.selectbox(
                 "Tape Study Agent",
-                ["claude-3-7-sonnet-20250219", "claude-3-5-sonnet", "gemini-2.5-pro", "gemini-2.5-pro", "gpt-5", "gpt-4"],
+                ["claude-3-7-sonnet-20250219", "gemini-2.5-pro", "gpt-5", "gpt-4"],
                 help="Technical combat analysis expert"
             )
             agent_models['stats_trends'] = st.selectbox(
@@ -209,14 +214,14 @@ with st.sidebar:
             )
             agent_models['style_matchup'] = st.selectbox(
                 "Style Matchup Agent",
-                ["claude-3-7-sonnet-20250219", "claude-3-5-sonnet", "gemini-2.5-pro", "gpt-5"],
+                ["claude-3-7-sonnet-20250219", "gemini-2.5-pro", "gpt-5"],
                 help="Fighting style compatibility expert"
             )
 
         with col2:
             agent_models['market_odds'] = st.selectbox(
                 "Market & Odds Agent",
-                ["gpt-5-mini", "gpt-4", "gpt-3.5", "gemini-2.5-pro"],
+                ["gpt-5-mini", "gpt-4", "gemini-2.5-pro"],
                 help="Betting market analyst"
             )
             agent_models['judge'] = st.selectbox(
@@ -226,12 +231,12 @@ with st.sidebar:
             )
             agent_models['risk_scorer'] = st.selectbox(
                 "Risk Scorer",
-                ["gpt-5-mini", "gpt-4", "gemini-2.5-pro", "claude-3-5-haiku"],
+                ["gpt-5-mini", "gpt-4", "gemini-2.5-pro", "claude-3-5-haiku","claude-3-7-sonnet-20250219"],
                 help="Uncertainty assessment"
             )
             agent_models['consistency_checker'] = st.selectbox(
                 "Consistency Checker",
-                ["claude-3-5-haiku-20241022", "gemini-2.5-pro", "gpt-4", "claude-3-5-sonnet"],
+                ["claude-3-5-haiku-20241022", "gemini-2.5-pro", "gpt-4", "claude-3-7-sonnet-20250219"],
                 help="Quality assurance"
             )
 
@@ -242,6 +247,83 @@ with st.sidebar:
 
         if gemini_models_selected and not google_key.strip():
             st.error("⚠️ **Google AI API Key Required:** You selected Gemini models but didn't provide a Google API key. Please add your Google AI API key above.")
+
+    # Agent Prompts Customization
+    with st.expander("📝 Agent Prompts Customization"):
+        st.markdown("**Modify default prompts** (Leave empty to use defaults)")
+        st.warning("⚠️ **Expert Feature:** Only modify if you understand the agent's role and prompt structure.")
+
+        # Initialize custom prompts
+        custom_prompts = AgentPrompts()
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            custom_prompts.tape_study = st.text_area(
+                "Tape Study Agent",
+                value="",
+                height=100,
+                placeholder="Custom prompt for technical fight analysis...",
+                help="Analyzes fighting techniques, tape study, and combat patterns"
+            )
+            custom_prompts.stats_trends = st.text_area(
+                "Stats & Trends Agent",
+                value="",
+                height=100,
+                placeholder="Custom prompt for statistical analysis...",
+                help="Evaluates performance metrics, statistics, and trends"
+            )
+            custom_prompts.news_weighins = st.text_area(
+                "News & Intelligence Agent",
+                value="",
+                height=100,
+                placeholder="Custom prompt for news and external factors...",
+                help="Reviews current events, injuries, and weigh-in intelligence"
+            )
+            custom_prompts.style_matchup = st.text_area(
+                "Style Matchup Agent",
+                value="",
+                height=100,
+                placeholder="Custom prompt for fighting style analysis...",
+                help="Analyzes fighting styles and matchup dynamics"
+            )
+
+        with col2:
+            custom_prompts.market_odds = st.text_area(
+                "Market & Odds Agent",
+                value="",
+                height=100,
+                placeholder="Custom prompt for betting market analysis...",
+                help="Evaluates betting markets and odds movements"
+            )
+            custom_prompts.judge = st.text_area(
+                "Judge Agent",
+                value="",
+                height=100,
+                placeholder="Custom prompt for synthesis and final judgment...",
+                help="Combines all agent analyses into final predictions"
+            )
+            custom_prompts.risk_scorer = st.text_area(
+                "Risk Scorer",
+                value="",
+                height=100,
+                placeholder="Custom prompt for risk assessment...",
+                help="Identifies and flags potential risks and uncertainties"
+            )
+            custom_prompts.consistency_checker = st.text_area(
+                "Consistency Checker",
+                value="",
+                height=100,
+                placeholder="Custom prompt for quality assurance...",
+                help="Validates predictions and adjusts confidence levels"
+            )
+
+        # Convert to dict format and filter empty prompts
+        if any([v for v in custom_prompts.model_dump().values() if v and v.strip()]):
+            st.success("✅ Custom prompts configured")
+            custom_prompts_dict = {k: v for k, v in custom_prompts.model_dump().items() if v and v.strip()}
+        else:
+            custom_prompts_dict = None
 
 
 def create_fight_form(fight_num: int) -> Dict[str, Any]:
@@ -343,44 +425,46 @@ def validate_fight(fight_data: Dict[str, Any]) -> List[str]:
 async def analyze_card_direct(card: Card):
     """Direct analysis function (extracted from app/main.py)"""
     try:
-        # Extract model overrides and API keys from card
+        # Extract model overrides, custom prompts, and API keys from card
         agent_models = card.agent_models
+        custom_prompts = card.custom_prompts
         api_keys = card.api_keys
 
         # Set runtime API keys to environment if provided
         set_runtime_api_keys(api_keys)
 
         # Run 5 main agents in parallel
-        tape_task = tape_study_agent(card, agent_models.tape_study if agent_models else None, card.use_serper, api_keys)
-        stats_task = stats_trends_agent(card, agent_models.stats_trends if agent_models else None, card.use_serper, api_keys)
-        news_task = news_weighins_agent(card, agent_models.news_weighins if agent_models else None, card.use_serper, api_keys)
-        style_task = style_matchup_agent(card, agent_models.style_matchup if agent_models else None, card.use_serper, api_keys)
-        market_task = market_odds_agent(card, agent_models.market_odds if agent_models else None, card.use_serper, api_keys)
+        tape_task = tape_study_agent(card, agent_models.tape_study if agent_models else None, card.use_serper, api_keys, custom_prompts.tape_study if custom_prompts else None)
+        stats_task = stats_trends_agent(card, agent_models.stats_trends if agent_models else None, card.use_serper, api_keys, custom_prompts.stats_trends if custom_prompts else None)
+        news_task = news_weighins_agent(card, agent_models.news_weighins if agent_models else None, card.use_serper, api_keys, custom_prompts.news_weighins if custom_prompts else None)
+        style_task = style_matchup_agent(card, agent_models.style_matchup if agent_models else None, card.use_serper, api_keys, custom_prompts.style_matchup if custom_prompts else None)
+        market_task = market_odds_agent(card, agent_models.market_odds if agent_models else None, card.use_serper, api_keys, custom_prompts.market_odds if custom_prompts else None)
 
         tape, stats, news, style, market = await asyncio.gather(
             tape_task, stats_task, news_task, style_task, market_task
         )
 
         # Judge agent
-        analyses = await judge_agent(card, tape, stats, news, style, market, agent_models.judge if agent_models else None, api_keys)
+        analyses = await judge_agent(card, tape, stats, news, style, market, agent_models.judge if agent_models else None, api_keys, custom_prompts.judge if custom_prompts else None)
 
         # Post agents
-        analyses = await risk_scorer_agent(analyses, agent_models.risk_scorer if agent_models else None, api_keys)
-        analyses = await consistency_checker_agent(analyses, agent_models.consistency_checker if agent_models else None, api_keys)
+        analyses = await risk_scorer_agent(analyses, agent_models.risk_scorer if agent_models else None, api_keys, custom_prompts.risk_scorer if custom_prompts else None)
+        analyses = await consistency_checker_agent(analyses, agent_models.consistency_checker if agent_models else None, api_keys, custom_prompts.consistency_checker if custom_prompts else None)
 
         return CardAnalysis(analyses=analyses)
 
     except Exception as e:
         raise Exception(f"Analysis failed: {str(e)}")
 
-def run_direct_analysis(fights_data: List[Dict[str, Any]], use_serper: bool, agent_models: Dict[str, str], api_keys: Dict[str, str] = None):
+def run_direct_analysis(fights_data: List[Dict[str, Any]], use_serper: bool, agent_models: Dict[str, str], api_keys: Dict[str, str] = None, custom_prompts_dict: Dict[str, str] = None):
     """Run analysis directly without HTTP requests"""
     # Convert fights data to Card model
     card = Card(
         fights=fights_data,
         use_serper=use_serper,
         agent_models=agent_models,
-        api_keys=api_keys
+        api_keys=api_keys,
+        custom_prompts=custom_prompts_dict
     )
 
     # Run analysis in new event loop
@@ -560,7 +644,7 @@ if not analysis_blocked:
 
             try:
                 # Run direct analysis (no HTTP request)
-                card_analysis = run_direct_analysis(fights_data, use_serper, agent_models, api_keys)
+                card_analysis = run_direct_analysis(fights_data, use_serper, agent_models, api_keys, custom_prompts_dict)
 
                 # Convert CardAnalysis to expected dict format with fighter info
                 analyses_with_fighters = []
