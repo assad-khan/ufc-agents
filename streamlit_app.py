@@ -9,7 +9,7 @@ import asyncio
 from datetime import datetime
 
 # Direct UFC analysis imports
-from app.models import Card, CardAnalysis, AgentPrompts
+from app.models import Card, CardAnalysis, AgentPrompts, AgentTemperatures, AgentTopPs
 from app.agents import (
     tape_study_agent, stats_trends_agent, news_weighins_agent,
     style_matchup_agent, market_odds_agent, judge_agent,
@@ -248,6 +248,110 @@ with st.sidebar:
         if gemini_models_selected and not google_key.strip():
             st.error("⚠️ **Google AI API Key Required:** You selected Gemini models but didn't provide a Google API key. Please add your Google AI API key above.")
 
+        st.markdown("---")
+        st.markdown("### 🎛️ Generation Parameters")
+        st.markdown("**Control creativity (Temperature) and randomness (Top-P)**")
+
+        custom_temperatures = AgentTemperatures()
+        custom_top_ps = AgentTopPs()
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            st.markdown("#### 🔥 Temperature (0.0-1.0)")
+            st.markdown("Higher = more creative, Lower = more focused")
+            custom_temperatures.tape_study = st.slider(
+                "Tape Study Agent",
+                0.0, 1.0, 0.2, 0.05,
+                help="Technical fight analysis creativity level"
+            )
+            custom_temperatures.stats_trends = st.slider(
+                "Stats & Trends Agent",
+                0.0, 1.0, 0.1, 0.05,
+                help="Statistical analysis precision level"
+            )
+            custom_temperatures.news_weighins = st.slider(
+                "News & Intelligence Agent",
+                0.0, 1.0, 0.1, 0.05,
+                help="News analysis creativity level"
+            )
+            custom_temperatures.style_matchup = st.slider(
+                "Style Matchup Agent",
+                0.0, 1.0, 0.2, 0.05,
+                help="Fighting style analysis creativity"
+            )
+
+        with col2:
+            custom_temperatures.market_odds = st.slider(
+                "Market & Odds Agent",
+                0.0, 1.0, 0.0, 0.05,
+                help="Betting market analysis precision"
+            )
+            custom_temperatures.judge = st.slider(
+                "Judge Agent",
+                0.0, 1.0, 0.0, 0.05,
+                help="Final synthesis consistency"
+            )
+            custom_temperatures.risk_scorer = st.slider(
+                "Risk Scorer Agent",
+                0.0, 1.0, 0.0, 0.05,
+                help="Risk assessment precision"
+            )
+            custom_temperatures.consistency_checker = st.slider(
+                "Consistency Checker Agent",
+                0.0, 1.0, 0.05, 0.05,
+                help="Quality assurance balance"
+            )
+
+        st.markdown("---")
+        col3, col4 = st.columns(2)
+
+        with col3:
+            st.markdown("#### 🎯 Top-P (0.0-1.0)")
+            st.markdown("Higher = more diverse, Lower = more focused")
+            custom_top_ps.tape_study = st.slider(
+                "Tape Study Agent Top-P",
+                0.0, 1.0, 0.9, 0.05,
+                help="Technical analysis diversity"
+            )
+            custom_top_ps.stats_trends = st.slider(
+                "Stats & Trends Agent Top-P",
+                0.0, 1.0, 0.9, 0.05,
+                help="Statistical analysis diversity"
+            )
+            custom_top_ps.news_weighins = st.slider(
+                "News & Intelligence Agent Top-P",
+                0.0, 1.0, 0.9, 0.05,
+                help="News analysis response variety"
+            )
+            custom_top_ps.style_matchup = st.slider(
+                "Style Matchup Agent Top-P",
+                0.0, 1.0, 0.9, 0.05,
+                help="Style analysis response variety"
+            )
+
+        with col4:
+            custom_top_ps.market_odds = st.slider(
+                "Market & Odds Agent Top-P",
+                0.0, 1.0, 0.8, 0.05,
+                help="Market analysis response variety"
+            )
+            custom_top_ps.judge = st.slider(
+                "Judge Agent Top-P",
+                0.0, 1.0, 0.5, 0.05,
+                help="Synthesis response variety (low for consistency)"
+            )
+            custom_top_ps.risk_scorer = st.slider(
+                "Risk Scorer Agent Top-P",
+                0.0, 1.0, 0.8, 0.05,
+                help="Risk assessment response variety"
+            )
+            custom_top_ps.consistency_checker = st.slider(
+                "Consistency Checker Agent Top-P",
+                0.0, 1.0, 0.7, 0.05,
+                help="Quality check response variety"
+            )
+
     # Agent Prompts Customization
     with st.expander("📝 Agent Prompts Customization"):
         st.markdown("**Modify default prompts** (Leave empty to use defaults)")
@@ -428,35 +532,37 @@ async def analyze_card_direct(card: Card):
         # Extract model overrides, custom prompts, and API keys from card
         agent_models = card.agent_models
         custom_prompts = card.custom_prompts
+        custom_temperatures = card.custom_temperatures
+        custom_top_ps = card.custom_top_ps
         api_keys = card.api_keys
 
         # Set runtime API keys to environment if provided
         set_runtime_api_keys(api_keys)
 
         # Run 5 main agents in parallel
-        tape_task = tape_study_agent(card, agent_models.tape_study if agent_models else None, card.use_serper, api_keys, custom_prompts.tape_study if custom_prompts else None)
-        stats_task = stats_trends_agent(card, agent_models.stats_trends if agent_models else None, card.use_serper, api_keys, custom_prompts.stats_trends if custom_prompts else None)
-        news_task = news_weighins_agent(card, agent_models.news_weighins if agent_models else None, card.use_serper, api_keys, custom_prompts.news_weighins if custom_prompts else None)
-        style_task = style_matchup_agent(card, agent_models.style_matchup if agent_models else None, card.use_serper, api_keys, custom_prompts.style_matchup if custom_prompts else None)
-        market_task = market_odds_agent(card, agent_models.market_odds if agent_models else None, card.use_serper, api_keys, custom_prompts.market_odds if custom_prompts else None)
+        tape_task = tape_study_agent(card, agent_models.tape_study if agent_models else None, card.use_serper, api_keys, custom_prompts.tape_study if custom_prompts else None, custom_temperatures.tape_study if custom_temperatures else None, custom_top_ps.tape_study if custom_top_ps else None)
+        stats_task = stats_trends_agent(card, agent_models.stats_trends if agent_models else None, card.use_serper, api_keys, custom_prompts.stats_trends if custom_prompts else None, custom_temperatures.stats_trends if custom_temperatures else None, custom_top_ps.stats_trends if custom_top_ps else None)
+        news_task = news_weighins_agent(card, agent_models.news_weighins if agent_models else None, card.use_serper, api_keys, custom_prompts.news_weighins if custom_prompts else None, custom_temperatures.news_weighins if custom_temperatures else None, custom_top_ps.news_weighins if custom_top_ps else None)
+        style_task = style_matchup_agent(card, agent_models.style_matchup if agent_models else None, card.use_serper, api_keys, custom_prompts.style_matchup if custom_prompts else None, custom_temperatures.style_matchup if custom_temperatures else None, custom_top_ps.style_matchup if custom_top_ps else None)
+        market_task = market_odds_agent(card, agent_models.market_odds if agent_models else None, card.use_serper, api_keys, custom_prompts.market_odds if custom_prompts else None, custom_temperatures.market_odds if custom_temperatures else None, custom_top_ps.market_odds if custom_top_ps else None)
 
         tape, stats, news, style, market = await asyncio.gather(
             tape_task, stats_task, news_task, style_task, market_task
         )
 
         # Judge agent
-        analyses = await judge_agent(card, tape, stats, news, style, market, agent_models.judge if agent_models else None, api_keys, custom_prompts.judge if custom_prompts else None)
+        analyses = await judge_agent(card, tape, stats, news, style, market, agent_models.judge if agent_models else None, api_keys, custom_prompts.judge if custom_prompts else None, custom_temperatures.judge if custom_temperatures else None, custom_top_ps.judge if custom_top_ps else None)
 
         # Post agents
-        analyses = await risk_scorer_agent(analyses, agent_models.risk_scorer if agent_models else None, api_keys, custom_prompts.risk_scorer if custom_prompts else None)
-        analyses = await consistency_checker_agent(analyses, agent_models.consistency_checker if agent_models else None, api_keys, custom_prompts.consistency_checker if custom_prompts else None)
+        analyses = await risk_scorer_agent(analyses, agent_models.risk_scorer if agent_models else None, api_keys, custom_prompts.risk_scorer if custom_prompts else None, custom_temperatures.risk_scorer if custom_temperatures else None, custom_top_ps.risk_scorer if custom_top_ps else None)
+        analyses = await consistency_checker_agent(analyses, agent_models.consistency_checker if agent_models else None, api_keys, custom_prompts.consistency_checker if custom_prompts else None, custom_temperatures.consistency_checker if custom_temperatures else None, custom_top_ps.consistency_checker if custom_top_ps else None)
 
         return CardAnalysis(analyses=analyses)
 
     except Exception as e:
         raise Exception(f"Analysis failed: {str(e)}")
 
-def run_direct_analysis(fights_data: List[Dict[str, Any]], use_serper: bool, agent_models: Dict[str, str], api_keys: Dict[str, str] = None, custom_prompts_dict: Dict[str, str] = None):
+def run_direct_analysis(fights_data: List[Dict[str, Any]], use_serper: bool, agent_models: Dict[str, str], api_keys: Dict[str, str] = None, custom_prompts_dict: Dict[str, str] = None, custom_temperatures: AgentTemperatures = None, custom_top_ps: AgentTopPs = None):
     """Run analysis directly without HTTP requests"""
     # Convert fights data to Card model
     card = Card(
@@ -464,7 +570,9 @@ def run_direct_analysis(fights_data: List[Dict[str, Any]], use_serper: bool, age
         use_serper=use_serper,
         agent_models=agent_models,
         api_keys=api_keys,
-        custom_prompts=custom_prompts_dict
+        custom_prompts=custom_prompts_dict,
+        custom_temperatures=custom_temperatures,
+        custom_top_ps=custom_top_ps
     )
 
     # Run analysis in new event loop
@@ -644,7 +752,7 @@ if not analysis_blocked:
 
             try:
                 # Run direct analysis (no HTTP request)
-                card_analysis = run_direct_analysis(fights_data, use_serper, agent_models, api_keys, custom_prompts_dict)
+                card_analysis = run_direct_analysis(fights_data, use_serper, agent_models, api_keys, custom_prompts_dict, custom_temperatures, custom_top_ps)
 
                 # Convert CardAnalysis to expected dict format with fighter info
                 analyses_with_fighters = []

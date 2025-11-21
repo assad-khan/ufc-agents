@@ -1,7 +1,7 @@
 from langchain.agents import create_agent
 from langchain.agents.structured_output import ToolStrategy
 from langchain.tools import tool
-from app.config import get_model_for_agent, get_temperature_for_agent, get_api_key
+from app.config import get_model_for_agent, get_temperature_for_agent, get_top_p_for_agent, get_api_key
 from app.llm_providers import get_llm
 from app.models import FightAnalysis, Card, CardAnalysis
 from typing import List, Dict, Any, Optional
@@ -9,9 +9,54 @@ import requests
 from loguru import logger
 from app.prompts import *
 
+# LangChain model imports
+from langchain_openai import ChatOpenAI
+from langchain_anthropic import ChatAnthropic
+from langchain_google_genai import ChatGoogleGenerativeAI
+
 # Gemini imports for direct API usage
 from google import genai
 from google.genai.types import GenerateContentConfig, GoogleSearch, Tool
+
+
+def create_llm_with_params(model_name: str, temperature: Optional[float] = None, top_p: Optional[float] = None):
+    """Create the appropriate LangChain model instance with temperature and top_p parameters"""
+    # Get API key based on model type
+    if model_name.startswith("gpt"):
+        api_key = get_api_key("openai")
+        model = ChatOpenAI(
+            model=model_name,
+            api_key=api_key,
+            temperature=temperature if temperature is not None else 0.7,
+            # top_p=top_p if top_p is not None else 1.0
+        )
+    elif model_name.startswith("claude") or model_name.startswith("anthropic"):
+        api_key = get_api_key("anthropic")
+        model = ChatAnthropic(
+            model=model_name,
+            api_key=api_key,
+            temperature=temperature if temperature is not None else 0.7,
+            top_p=top_p if top_p is not None else 0.9
+        )
+    elif model_name.startswith("gemini"):
+        api_key = get_api_key("google")
+        model = ChatGoogleGenerativeAI(
+            model=model_name,
+            api_key=api_key,
+            temperature=temperature if temperature is not None else 0.7,
+            top_p=top_p if top_p is not None else 0.9
+        )
+    else:
+        # Default to ChatOpenAI for unknown models
+        api_key = get_api_key("openai")
+        model = ChatOpenAI(
+            model=model_name,
+            api_key=api_key,
+            temperature=temperature if temperature is not None else 0.7,
+            top_p=top_p if top_p is not None else 1.0
+        )
+
+    return model
 
 
 
@@ -86,24 +131,30 @@ async def run_agent(agent_type: str, system_prompt: str, card: Card, model_overr
         logger.error(f"Error in {agent_type} agent: {str(e)}")
         return f"Analysis failed for {agent_type}: {str(e)}"
 
-async def tape_study_agent(card: Card, model_override: Optional[str] = None, use_serper: bool = False, api_keys: Optional[Dict[str, str]] = None, custom_prompt: Optional[str] = None) -> str:
+async def tape_study_agent(card: Card, model_override: Optional[str] = None, use_serper: bool = False, api_keys: Optional[Dict[str, str]] = None, custom_prompt: Optional[str] = None, custom_temperature: Optional[float] = None, custom_top_p: Optional[float] = None) -> str:
     logger.info(f"Starting tape_study agent (serper: {use_serper})")
     try:
         model_name = model_override if model_override else get_model_for_agent("tape_study")
         system_prompt = custom_prompt if custom_prompt else TAPE_STUDY_PROMPT
-   
+
+        # Get temperature and top_p values
+        temperature = custom_temperature if custom_temperature is not None else get_temperature_for_agent("tape_study")
+        top_p = custom_top_p if custom_top_p is not None else get_top_p_for_agent("tape_study")
+
+        # Create model with temperature and top_p
+        model = create_llm_with_params(model_name, temperature, top_p)
 
         # Determine tools based on use_serper flag
         tools = [serper_search] if use_serper else []
 
-        # Create agent with conditional tools
+        # Create agent with configured model
         agent = create_agent(
-            model=model_name,
+            model=model,
             tools=tools,
             response_format=None,  # Text response
             system_prompt=system_prompt
         )
-
+        
         if use_serper:
             user_content = f"Analyze this UFC card technical analysis:\n{card}\n\nYou can use the serper_search tool to find recent fight footage analysis, technical breakdowns, and expert commentary about fighters."
         else:
@@ -119,19 +170,25 @@ async def tape_study_agent(card: Card, model_override: Optional[str] = None, use
         logger.error(f"Error in tape_study agent: {str(e)}")
         return f"Analysis failed for tape_study: {str(e)}"
 
-async def stats_trends_agent(card: Card, model_override: Optional[str] = None, use_serper: bool = False, api_keys: Optional[Dict[str, str]] = None, custom_prompt: Optional[str] = None) -> str:
+async def stats_trends_agent(card: Card, model_override: Optional[str] = None, use_serper: bool = False, api_keys: Optional[Dict[str, str]] = None, custom_prompt: Optional[str] = None, custom_temperature: Optional[float] = None, custom_top_p: Optional[float] = None) -> str:
     logger.info(f"Starting stats_trends agent (serper: {use_serper})")
     try:
         model_name = model_override if model_override else get_model_for_agent("stats_trends")
         system_prompt = custom_prompt if custom_prompt else STATS_TRENDS_PROMPT
 
+        # Get temperature and top_p values
+        temperature = custom_temperature if custom_temperature is not None else get_temperature_for_agent("stats_trends")
+        top_p = custom_top_p if custom_top_p is not None else get_top_p_for_agent("stats_trends")
+
+        # Create model with temperature and top_p
+        model = create_llm_with_params(model_name, temperature, top_p)
 
         # Determine tools based on use_serper flag
         tools = [serper_search] if use_serper else []
 
-        # Create agent with conditional tools
+        # Create agent with configured model
         agent = create_agent(
-            model=model_name,
+            model=model,
             tools=tools,
             response_format=None,  # Text response
             system_prompt=system_prompt
@@ -152,7 +209,7 @@ async def stats_trends_agent(card: Card, model_override: Optional[str] = None, u
         logger.error(f"Error in stats_trends agent: {str(e)}")
         return f"Analysis failed for stats_trends: {str(e)}"
 
-async def news_weighins_agent(card: Card, model_override: Optional[str] = None, use_serper: bool = False, api_keys: Optional[Dict[str, str]] = None, custom_prompt: Optional[str] = None) -> str:
+async def news_weighins_agent(card: Card, model_override: Optional[str] = None, use_serper: bool = False, api_keys: Optional[Dict[str, str]] = None, custom_prompt: Optional[str] = None, custom_temperature: Optional[float] = None, custom_top_p: Optional[float] = None) -> str:
     logger.info(f"Starting news_weighins agent (serper: {use_serper})")
     try:
         model_name = model_override if model_override else get_model_for_agent("news_weighins")
@@ -175,19 +232,29 @@ Use the Google Search tool to find recent news about fighters, injuries, weigh-i
                 model=model_name,
                 contents=prompt,
                 config=GenerateContentConfig(
-                    tools=[Tool(google_search=GoogleSearch())]
+                    tools=[Tool(google_search=GoogleSearch())],
+                    temperature=custom_temperature if custom_temperature is not None else get_temperature_for_agent("news_weighins"),
+                    top_p=custom_top_p if custom_top_p is not None else get_top_p_for_agent("news_weighins")
+                
                 )
             )
             logger.info(f"Completed news_weighins agent with Gemini")
             return response.text
         else:
             # Use LangChain approach with optional Serper
+            # Get temperature and top_p values
+            temperature = custom_temperature if custom_temperature is not None else get_temperature_for_agent("news_weighins")
+            top_p = custom_top_p if custom_top_p is not None else get_top_p_for_agent("news_weighins")
+
+            # Create model with temperature and top_p
+            model = create_llm_with_params(model_name, temperature, top_p)
+
             # Determine tools based on use_serper flag
             tools = [serper_search] if use_serper else []
 
-            # Create agent with conditional tools
+            # Create agent with configured model
             agent = create_agent(
-                model=model_name,
+                model=model,
                 tools=tools,
                 response_format=None,  # Text response
                 system_prompt=system_prompt
@@ -208,19 +275,25 @@ Use the Google Search tool to find recent news about fighters, injuries, weigh-i
         logger.error(f"Error in news_weighins agent: {str(e)}")
         return f"Analysis failed for news_weighins: {str(e)}"
 
-async def style_matchup_agent(card: Card, model_override: Optional[str] = None, use_serper: bool = False, api_keys: Optional[Dict[str, str]] = None, custom_prompt: Optional[str] = None) -> str:
+async def style_matchup_agent(card: Card, model_override: Optional[str] = None, use_serper: bool = False, api_keys: Optional[Dict[str, str]] = None, custom_prompt: Optional[str] = None, custom_temperature: Optional[float] = None, custom_top_p: Optional[float] = None) -> str:
     logger.info(f"Starting style_matchup agent (serper: {use_serper})")
     try:
         model_name = model_override if model_override else get_model_for_agent("style_matchup")
         system_prompt = custom_prompt if custom_prompt else STYLE_MATCHUP_PROMPT
-      
+
+        # Get temperature and top_p values
+        temperature = custom_temperature if custom_temperature is not None else get_temperature_for_agent("style_matchup")
+        top_p = custom_top_p if custom_top_p is not None else get_top_p_for_agent("style_matchup")
+
+        # Create model with temperature and top_p
+        model = create_llm_with_params(model_name, temperature, top_p)
 
         # Determine tools based on use_serper flag
         tools = [serper_search] if use_serper else []
 
-        # Create agent with conditional tools
+        # Create agent with configured model
         agent = create_agent(
-            model=model_name,
+            model=model,
             tools=tools,
             response_format=None,  # Text response
             system_prompt=system_prompt
@@ -241,18 +314,25 @@ async def style_matchup_agent(card: Card, model_override: Optional[str] = None, 
         logger.error(f"Error in style_matchup agent: {str(e)}")
         return f"Analysis failed for style_matchup: {str(e)}"
 
-async def market_odds_agent(card: Card, model_override: Optional[str] = None, use_serper: bool = False, api_keys: Optional[Dict[str, str]] = None, custom_prompt: Optional[str] = None) -> str:
+async def market_odds_agent(card: Card, model_override: Optional[str] = None, use_serper: bool = False, api_keys: Optional[Dict[str, str]] = None, custom_prompt: Optional[str] = None, custom_temperature: Optional[float] = None, custom_top_p: Optional[float] = None) -> str:
     logger.info(f"Starting market_odds agent (serper: {use_serper})")
     try:
         model_name = model_override if model_override else get_model_for_agent("market_odds")
         system_prompt = custom_prompt if custom_prompt else MARKET_ODDS_PROMPT
 
+        # Get temperature and top_p values
+        temperature = custom_temperature if custom_temperature is not None else get_temperature_for_agent("market_odds")
+        top_p = custom_top_p if custom_top_p is not None else get_top_p_for_agent("market_odds")
+
+        # Create model with temperature and top_p
+        model = create_llm_with_params(model_name, temperature, top_p)
+
         # Determine tools based on use_serper flag
         tools = [serper_search] if use_serper else []
 
-        # Create agent with conditional tools
+        # Create agent with configured model
         agent = create_agent(
-            model=model_name,
+            model=model,
             tools=tools,
             response_format=None,  # Text response
             system_prompt=system_prompt
@@ -273,7 +353,7 @@ async def market_odds_agent(card: Card, model_override: Optional[str] = None, us
         logger.error(f"Error in market_odds agent: {str(e)}")
         return f"Analysis failed for market_odds: {str(e)}"
 
-async def judge_agent(card: Card, tape: str, stats: str, news: str, style: str, market: str, model_override: Optional[str] = None, api_keys: Optional[Dict[str, str]] = None, custom_prompt: Optional[str] = None) -> List[FightAnalysis]:
+async def judge_agent(card: Card, tape: str, stats: str, news: str, style: str, market: str, model_override: Optional[str] = None, api_keys: Optional[Dict[str, str]] = None, custom_prompt: Optional[str] = None, custom_temperature: Optional[float] = None, custom_top_p: Optional[float] = None) -> List[FightAnalysis]:
     logger.info("Starting judge agent")
     try:
         model_name = model_override if model_override else get_model_for_agent("judge")
@@ -283,10 +363,17 @@ You are the final judge synthesizing all analyses into a definitive prediction.
 
 Synthesize the following analyses from different experts for each fight on the UFC card.
 """
-       
-        # Create agent with structured output
+
+        # Get temperature and top_p values
+        temperature = custom_temperature if custom_temperature is not None else get_temperature_for_agent("judge")
+        top_p = custom_top_p if custom_top_p is not None else get_top_p_for_agent("judge")
+
+        # Create model with temperature and top_p
+        model = create_llm_with_params(model_name, temperature, top_p)
+
+        # Create agent with configured model and structured output
         agent = create_agent(
-            model=model_name,
+            model=model,
             tools=[],  # No tools for judge
             response_format=ToolStrategy(CardAnalysis),  # Structured output
             system_prompt=system_prompt
@@ -321,7 +408,7 @@ Provide final analysis for all fights with picks, confidence, path to victory, r
 
 # Post agents - now using LangChain agents
 
-async def risk_scorer_agent(analyses: List[FightAnalysis], model_override: Optional[str] = None, api_keys: Optional[Dict[str, str]] = None, custom_prompt: Optional[str] = None) -> List[FightAnalysis]:
+async def risk_scorer_agent(analyses: List[FightAnalysis], model_override: Optional[str] = None, api_keys: Optional[Dict[str, str]] = None, custom_prompt: Optional[str] = None, custom_temperature: Optional[float] = None, custom_top_p: Optional[float] = None) -> List[FightAnalysis]:
     """Risk Scorer Agent - enhances risk flags using LLM analysis"""
     logger.info(f"Starting risk scorer agent for {len(analyses)} analyses")
     try:
@@ -341,9 +428,16 @@ Consider factors like:
 
 Add relevant risk flags to each analysis while preserving existing ones.
 """
-        
+
+        # Get temperature and top_p values
+        temperature = custom_temperature if custom_temperature is not None else get_temperature_for_agent("risk_scorer")
+        top_p = custom_top_p if custom_top_p is not None else get_top_p_for_agent("risk_scorer")
+
+        # Create model with temperature and top_p
+        model = create_llm_with_params(model_name, temperature, top_p)
+
         agent = create_agent(
-            model=model_name,
+            model=model,
             tools=[],  # No tools needed
             response_format=ToolStrategy(CardAnalysis),  # Structured output
             system_prompt=system_prompt
@@ -379,7 +473,7 @@ Return the complete updated analysis with enhanced risk assessment.
                 analysis.risk_flags.append("no major risks identified")
         return analyses
 
-async def consistency_checker_agent(analyses: List[FightAnalysis], model_override: Optional[str] = None, api_keys: Optional[Dict[str, str]] = None, custom_prompt: Optional[str] = None) -> List[FightAnalysis]:
+async def consistency_checker_agent(analyses: List[FightAnalysis], model_override: Optional[str] = None, api_keys: Optional[Dict[str, str]] = None, custom_prompt: Optional[str] = None, custom_temperature: Optional[float] = None, custom_top_p: Optional[float] = None) -> List[FightAnalysis]:
     """Consistency Checker Agent - validates and adjusts confidence scores"""
     logger.info(f"Starting consistency checker agent for {len(analyses)} analyses")
     try:
@@ -398,8 +492,15 @@ Consider:
 Adjust confidence scores (0-100) to better reflect realistic probabilities while maintaining the pick.
 """
 
+        # Get temperature and top_p values
+        temperature = custom_temperature if custom_temperature is not None else get_temperature_for_agent("consistency_checker")
+        top_p = custom_top_p if custom_top_p is not None else get_top_p_for_agent("consistency_checker")
+
+        # Create model with temperature and top_p
+        model = create_llm_with_params(model_name, temperature, top_p)
+
         agent = create_agent(
-            model=model_name,
+            model=model,
             tools=[],  # No tools needed
             response_format=ToolStrategy(CardAnalysis),  # Structured output
             system_prompt=system_prompt

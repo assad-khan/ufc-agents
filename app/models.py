@@ -1,6 +1,28 @@
 from pydantic import BaseModel, Field
 from typing import List, Optional, Dict
 
+class AgentTemperatures(BaseModel):
+    """Custom temperature settings for specific agents"""
+    tape_study: Optional[float] = Field(default=None, description="Temperature (0.0-1.0) for tape study agent")
+    stats_trends: Optional[float] = Field(default=None, description="Temperature (0.0-1.0) for stats & trends agent")
+    news_weighins: Optional[float] = Field(default=None, description="Temperature (0.0-1.0) for news & intelligence agent")
+    style_matchup: Optional[float] = Field(default=None, description="Temperature (0.0-1.0) for style matchup agent")
+    market_odds: Optional[float] = Field(default=None, description="Temperature (0.0-1.0) for market & odds agent")
+    judge: Optional[float] = Field(default=None, description="Temperature (0.0-1.0) for judge agent")
+    risk_scorer: Optional[float] = Field(default=None, description="Temperature (0.0-1.0) for risk scorer agent")
+    consistency_checker: Optional[float] = Field(default=None, description="Temperature (0.0-1.0) for consistency checker agent")
+
+class AgentTopPs(BaseModel):
+    """Custom top-p settings for specific agents"""
+    tape_study: Optional[float] = Field(default=None, description="Top-p (0.0-1.0) for tape study agent")
+    stats_trends: Optional[float] = Field(default=None, description="Top-p (0.0-1.0) for stats & trends agent")
+    news_weighins: Optional[float] = Field(default=None, description="Top-p (0.0-1.0) for news & intelligence agent")
+    style_matchup: Optional[float] = Field(default=None, description="Top-p (0.0-1.0) for style matchup agent")
+    market_odds: Optional[float] = Field(default=None, description="Top-p (0.0-1.0) for market & odds agent")
+    judge: Optional[float] = Field(default=None, description="Top-p (0.0-1.0) for judge agent")
+    risk_scorer: Optional[float] = Field(default=None, description="Top-p (0.0-1.0) for risk scorer agent")
+    consistency_checker: Optional[float] = Field(default=None, description="Top-p (0.0-1.0) for consistency checker agent")
+
 class AgentPrompts(BaseModel):
     """Custom prompts for specific agents"""
     tape_study: Optional[str] = Field(default=None, example="Custom tape study prompt...")
@@ -49,6 +71,14 @@ class Card(BaseModel):
     custom_prompts: Optional[AgentPrompts] = Field(
         default=None,
         description="Optional custom prompts for specific agents. If not provided, default prompts are used."
+    )
+    custom_temperatures: Optional[AgentTemperatures] = Field(
+        default=None,
+        description="Optional custom temperature settings for specific agents. If not provided, defaults are used."
+    )
+    custom_top_ps: Optional[AgentTopPs] = Field(
+        default=None,
+        description="Optional custom top-p settings for specific agents. If not provided, defaults are used."
     )
     api_keys: Optional[Dict[str, str]] = Field(
         default=None,

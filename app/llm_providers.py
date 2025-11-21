@@ -4,32 +4,43 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from app.config import get_api_key
 from typing import Dict
 
-def get_llm(model_name: str, temperature: float = 0.1, runtime_keys: Dict[str, str] = None):
+def get_llm(model_name: str, temperature: float = 0.1, top_p: float = None, runtime_keys: Dict[str, str] = None):
     if model_name.startswith("gpt"):
-        return ChatOpenAI(
-            model=model_name,
-            api_key=get_api_key("openai", runtime_keys),
-            temperature=temperature,
-            reasoning={ "effort": "medium" },
-            verbose=True,
-        )
+        config = {
+            "model": model_name,
+            "api_key": get_api_key("openai", runtime_keys),
+            "temperature": temperature,
+            "reasoning": { "effort": "medium" },
+            "verbose": True,
+        }
+        if top_p is not None:
+            config["top_p"] = top_p
+        return ChatOpenAI(**config)
     elif model_name.startswith("claude"):
-        return ChatAnthropic(
-            model=model_name,
-            api_key=get_api_key("anthropic", runtime_keys),
-            temperature=temperature,
-            max_tokens=4096  # Ensure adequate response length
-        )
+        config = {
+            "model": model_name,
+            "api_key": get_api_key("anthropic", runtime_keys),
+            "temperature": temperature,
+            "max_tokens": 4096  # Ensure adequate response length
+        }
+        if top_p is not None:
+            config["top_p"] = top_p
+        return ChatAnthropic(**config)
     elif model_name.startswith("gemini"):
-        return ChatGoogleGenerativeAI(
-            model=model_name,
-            api_key=get_api_key("google", runtime_keys),
-            temperature=temperature
-        )
+        config = {
+            "model": model_name,
+            "api_key": get_api_key("google", runtime_keys),
+            "temperature": temperature,
+        }
+        if top_p is not None:
+            config["top_p"] = top_p
+        return ChatGoogleGenerativeAI(**config)
     else:
         # Default to GPT-4o
-        return ChatOpenAI(
-            model="gpt-4o",
-            api_key=get_api_key("openai", runtime_keys),
-            temperature=temperature
-        )
+        config = {
+            "model": "gpt-4o",
+            "api_key": get_api_key("openai", runtime_keys),
+            "temperature": temperature,
+        }
+        if top_p is not None:
+            config["top_p"] = top_p

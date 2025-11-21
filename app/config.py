@@ -29,6 +29,18 @@ AGENT_TEMPERATURES = {
     "consistency_checker": 0.05  # Claude 3.7 Haiku temperature
 }
 
+# Agent top-p settings for custom control
+AGENT_TOP_PS = {
+    "tape_study": 0.9,        # Claude 3.7 Sonnet top-p
+    "stats_trends": 0.9,      # GPT-5 Thinking top-p
+    "news_weighins": 0.9,     # Gemini-2.5-pro top-p
+    "style_matchup": 0.9,     # Claude 3.7 Sonnet top-p
+    "market_odds": 0.8,       # GPT-5 mini top-p
+    "judge": 0.5,             # GPT-5 Thinking (JSON mode) top-p for precision
+    "risk_scorer": 0.8,       # GPT-5 mini top-p
+    "consistency_checker": 0.7  # Claude 3.7 Haiku top-p for balanced precision/creativity
+}
+
 # API Keys
 API_KEYS = {
     "openai": os.getenv("OPENAI_API_KEY"),
@@ -44,6 +56,9 @@ def get_model_for_agent(agent_type: str) -> str:
 
 def get_temperature_for_agent(agent_type: str) -> float:
     return AGENT_TEMPERATURES.get(agent_type, 0.1)  # default temperature
+
+def get_top_p_for_agent(agent_type: str) -> float:
+    return AGENT_TOP_PS.get(agent_type, 0.9)  # default top-p
 
 def get_api_key(provider: str, runtime_keys: Dict[str, str] = None) -> str:
     """Get API key either from runtime keys or environment variables"""
