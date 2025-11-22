@@ -19,11 +19,13 @@ from google import genai
 from google.genai.types import GenerateContentConfig, GoogleSearch, Tool
 
 
-def create_llm_with_params(model_name: str, temperature: Optional[float] = None, top_p: Optional[float] = None):
+def create_llm_with_params(model_name: str, temperature: Optional[float] = None, top_p: Optional[float] = None, api_keys: Optional[Dict[str, str]] = None):
     """Create the appropriate LangChain model instance with temperature and top_p parameters"""
     # Get API key based on model type
     if model_name.startswith("gpt"):
-        api_key = get_api_key("openai")
+        api_key = get_api_key("openai", api_keys)
+        if not api_key:
+            raise ValueError(f"OpenAI API key is required for model {model_name}, but none provided in api_keys or environment")
         model = ChatOpenAI(
             model=model_name,
             api_key=api_key,
@@ -31,7 +33,9 @@ def create_llm_with_params(model_name: str, temperature: Optional[float] = None,
             # top_p=top_p if top_p is not None else 1.0
         )
     elif model_name.startswith("claude") or model_name.startswith("anthropic"):
-        api_key = get_api_key("anthropic")
+        api_key = get_api_key("anthropic", api_keys)
+        if not api_key:
+            raise ValueError(f"Anthropic API key is required for model {model_name}, but none provided in api_keys or environment")
         model = ChatAnthropic(
             model=model_name,
             api_key=api_key,
@@ -39,7 +43,9 @@ def create_llm_with_params(model_name: str, temperature: Optional[float] = None,
             top_p=top_p if top_p is not None else 0.9
         )
     elif model_name.startswith("gemini"):
-        api_key = get_api_key("google")
+        api_key = get_api_key("google", api_keys)
+        if not api_key:
+            raise ValueError(f"Google API key is required for model {model_name}, but none provided in api_keys or environment")
         model = ChatGoogleGenerativeAI(
             model=model_name,
             api_key=api_key,
@@ -48,7 +54,9 @@ def create_llm_with_params(model_name: str, temperature: Optional[float] = None,
         )
     else:
         # Default to ChatOpenAI for unknown models
-        api_key = get_api_key("openai")
+        api_key = get_api_key("openai", api_keys)
+        if not api_key:
+            raise ValueError(f"OpenAI API key is required for model {model_name}, but none provided in api_keys or environment")
         model = ChatOpenAI(
             model=model_name,
             api_key=api_key,
@@ -62,11 +70,11 @@ def create_llm_with_params(model_name: str, temperature: Optional[float] = None,
 
 # Serper Web Search Tool
 @tool
-def serper_search(query: str) -> str:
+def serper_search(query: str, api_keys: Optional[Dict[str, str]] = None) -> str:
     """Search the web for fighter news, injuries, and recent updates using Serper API."""
     try:
         logger.info(f"Serper search for: {query}")
-        api_key = get_api_key("serper")
+        api_key = get_api_key("serper", api_keys)
         if not api_key:
             return "Serper API key not configured"
 
@@ -142,7 +150,7 @@ async def tape_study_agent(card: Card, model_override: Optional[str] = None, use
         top_p = custom_top_p if custom_top_p is not None else get_top_p_for_agent("tape_study")
 
         # Create model with temperature and top_p
-        model = create_llm_with_params(model_name, temperature, top_p)
+        model = create_llm_with_params(model_name, temperature, top_p, api_keys)
 
         # Determine tools based on use_serper flag
         tools = [serper_search] if use_serper else []
@@ -181,7 +189,7 @@ async def stats_trends_agent(card: Card, model_override: Optional[str] = None, u
         top_p = custom_top_p if custom_top_p is not None else get_top_p_for_agent("stats_trends")
 
         # Create model with temperature and top_p
-        model = create_llm_with_params(model_name, temperature, top_p)
+        model = create_llm_with_params(model_name, temperature, top_p, api_keys)
 
         # Determine tools based on use_serper flag
         tools = [serper_search] if use_serper else []
@@ -247,7 +255,7 @@ Use the Google Search tool to find recent news about fighters, injuries, weigh-i
             top_p = custom_top_p if custom_top_p is not None else get_top_p_for_agent("news_weighins")
 
             # Create model with temperature and top_p
-            model = create_llm_with_params(model_name, temperature, top_p)
+            model = create_llm_with_params(model_name, temperature, top_p, api_keys)
 
             # Determine tools based on use_serper flag
             tools = [serper_search] if use_serper else []
@@ -286,7 +294,7 @@ async def style_matchup_agent(card: Card, model_override: Optional[str] = None, 
         top_p = custom_top_p if custom_top_p is not None else get_top_p_for_agent("style_matchup")
 
         # Create model with temperature and top_p
-        model = create_llm_with_params(model_name, temperature, top_p)
+        model = create_llm_with_params(model_name, temperature, top_p, api_keys)
 
         # Determine tools based on use_serper flag
         tools = [serper_search] if use_serper else []
@@ -325,7 +333,7 @@ async def market_odds_agent(card: Card, model_override: Optional[str] = None, us
         top_p = custom_top_p if custom_top_p is not None else get_top_p_for_agent("market_odds")
 
         # Create model with temperature and top_p
-        model = create_llm_with_params(model_name, temperature, top_p)
+        model = create_llm_with_params(model_name, temperature, top_p, api_keys)
 
         # Determine tools based on use_serper flag
         tools = [serper_search] if use_serper else []
@@ -369,7 +377,7 @@ Synthesize the following analyses from different experts for each fight on the U
         top_p = custom_top_p if custom_top_p is not None else get_top_p_for_agent("judge")
 
         # Create model with temperature and top_p
-        model = create_llm_with_params(model_name, temperature, top_p)
+        model = create_llm_with_params(model_name, temperature, top_p, api_keys)
 
         # Create agent with configured model and structured output
         agent = create_agent(
@@ -434,7 +442,7 @@ Add relevant risk flags to each analysis while preserving existing ones.
         top_p = custom_top_p if custom_top_p is not None else get_top_p_for_agent("risk_scorer")
 
         # Create model with temperature and top_p
-        model = create_llm_with_params(model_name, temperature, top_p)
+        model = create_llm_with_params(model_name, temperature, top_p, api_keys)
 
         agent = create_agent(
             model=model,
@@ -497,7 +505,7 @@ Adjust confidence scores (0-100) to better reflect realistic probabilities while
         top_p = custom_top_p if custom_top_p is not None else get_top_p_for_agent("consistency_checker")
 
         # Create model with temperature and top_p
-        model = create_llm_with_params(model_name, temperature, top_p)
+        model = create_llm_with_params(model_name, temperature, top_p, api_keys)
 
         agent = create_agent(
             model=model,
